@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,25 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useSettings } from "@/hooks/use-local-storage";
 
 const Settings = () => {
   const navigate = useNavigate();
-  
-  const [settings, setSettings] = useState({
-    visualFilter: false,
-    workTime: 25,
-    shortBreak: 5,
-    longBreak: 15,
-    longBreakInterval: 4,
-    autoBreaks: false,
-    autoStart: false,
-    audioUrl: "",
-    soundEnabled: true,
-  });
+  const [settings, setSettings] = useSettings();
 
   const handleSave = () => {
-    // Save settings to localStorage or state management
-    localStorage.setItem("pomodoroSettings", JSON.stringify(settings));
     toast.success("Configurações salvas com sucesso!");
     navigate("/");
   };

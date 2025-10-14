@@ -1,16 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft } from "lucide-react";
+import { useCurrentTask } from "@/hooks/use-local-storage";
 
 const Task = () => {
   const navigate = useNavigate();
+  const [currentTask, setCurrentTask] = useCurrentTask();
   const [task, setTask] = useState("");
+
+  // Load last incomplete task if exists
+  useEffect(() => {
+    if (currentTask && !task) {
+      setTask(currentTask.task);
+    }
+  }, [currentTask, task]);
 
   const handleStart = () => {
     if (task.trim()) {
-      navigate("/timer", { state: { task } });
+      // Save current task to localStorage
+      setCurrentTask({
+        task: task.trim(),
+        startedAt: new Date().toISOString(),
+        timeLeft: 5 * 60,
+      });
+      navigate("/timer", { state: { task: task.trim() } });
     }
   };
 

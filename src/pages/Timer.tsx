@@ -2,25 +2,36 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Volume2, VolumeX } from "lucide-react";
+import { useSettings, useCurrentTask, addHistoryEntry } from "@/hooks/use-local-storage";
+import { toast } from "sonner";
 
 const Timer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const task = location.state?.task || "Tarefa não definida";
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [settings] = useSettings();
+  const [currentTask, setCurrentTask] = useCurrentTask();
   
-  const [timeLeft, setTimeLeft] = useState(5 * 60); // 5 minutes in seconds
-  const [isRunning, setIsRunning] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [settings, setSettings] = useState<any>(null);
-
-  // Load settings from localStorage
-  useEffect(() => {
-    const savedSettings = localStorage.getItem("pomodoroSettings");
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+  const [timeLeft, setTimeLeft] = useState(() => {
+    // Try to restore time from currentTask if returning to timer
+    if (currentTask && currentTask.task === task) {
+      return currentTask.timeLeft;
     }
-  }, []);
+    return settings.workTime * 60;
+  });
+  const [isRunning, setIsRunning] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
+
+  // Save current progress to localStorage
+  useEffect(() => {
+    if (currentTask && task !== "Tarefa não definida") {
+      setCurrentTask({
+        ...currentTask,
+        timeLeft,
+      });
+    }
+  }, [timeLeft, task, currentTask, setCurrentTask]);
 
   useEffect(() => {
     if (!location.state?.task) {
@@ -41,6 +52,11 @@ const Timer = () => {
             const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTWJ0fPTgjMGHm7A7+OZURE=");
             audio.play().catch(() => {});
           }
+          // Add to history when completed
+          const duration = Math.round(settings.workTime);
+          addHistoryEntry(task, duration, false);
+          setCurrentTask(null); // Clear current task
+          toast.success("Pomodoro concluído! 🎉");
           return 0;
         }
         return prev - 1;
@@ -48,12 +64,18 @@ const Timer = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft, soundEnabled]);
+  }, [isRunning, timeLeft, soundEnabled, task, settings.workTime, setCurrentTask]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
   const handleStopAndRestart = () => {
+    // Add to history as interrupted
+    const timeSpent = Math.round((settings.workTime * 60 - timeLeft) / 60);
+    if (timeSpent > 0) {
+      addHistoryEntry(task, timeSpent, true);
+    }
+    setCurrentTask(null); // Clear current task
     navigate("/");
   };
 
@@ -100,7 +122,7 @@ const Timer = () => {
               <div className="absolute -bottom-2 left-0 right-0 h-1 bg-muted rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-primary transition-all duration-1000 ease-linear"
-                  style={{ width: `${((5 * 60 - timeLeft) / (5 * 60)) * 100}%` }}
+                  style={{ width: `${((settings.workTime * 60 - timeLeft) / (settings.workTime * 60)) * 100}%` }}
                 />
               </div>
             </div>
