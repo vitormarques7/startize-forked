@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Volume2, VolumeX } from "lucide-react";
@@ -7,10 +7,20 @@ const Timer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const task = location.state?.task || "Tarefa não definida";
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   const [timeLeft, setTimeLeft] = useState(5 * 60); // 5 minutes in seconds
   const [isRunning, setIsRunning] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [settings, setSettings] = useState<any>(null);
+
+  // Load settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem("pomodoroSettings");
+    if (savedSettings) {
+      setSettings(JSON.parse(savedSettings));
+    }
+  }, []);
 
   useEffect(() => {
     if (!location.state?.task) {
@@ -47,8 +57,38 @@ const Timer = () => {
     navigate("/");
   };
 
+  // Extract YouTube video ID from URL
+  const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return null;
+    
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}?autoplay=1&loop=1&playlist=${match[2]}`;
+    }
+    return null;
+  };
+
+  const youtubeUrl = settings?.audioUrl ? getYouTubeEmbedUrl(settings.audioUrl) : null;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--gradient-soft)" }}>
+      {/* YouTube Player (hidden but playing) */}
+      {youtubeUrl && settings?.soundEnabled && (
+        <div className="fixed top-0 left-0 w-0 h-0 overflow-hidden opacity-0 pointer-events-none">
+          <iframe
+            ref={iframeRef}
+            width="0"
+            height="0"
+            src={youtubeUrl}
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            title="Background Music"
+          />
+        </div>
+      )}
+      
       <div className="w-full max-w-md">
         <div className="bg-card rounded-2xl p-8 shadow-[var(--shadow-card)]">
           <div className="text-center space-y-8">
