@@ -23,6 +23,7 @@ const Timer = () => {
   );
   const [isRunning, setIsRunning] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
+  const [isCompleted, setIsCompleted] = useState(false);
   const persistedOnceRef = useRef(false);
 
   // Persist progress (timeLeft + endAt) to localStorage
@@ -61,6 +62,7 @@ const Timer = () => {
       if (remaining <= 0) {
         clearInterval(id);
         setIsRunning(false);
+        setIsCompleted(true);
         if (soundEnabled) {
           // Play notification sound when timer ends
           const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTWJ0fPTgjMGHm7A7+OZURE=");
@@ -87,6 +89,28 @@ const Timer = () => {
       addHistoryEntry(task, timeSpent, true);
     }
     setCurrentTask(null); // Clear current task
+    navigate("/");
+  };
+
+  const handleContinue = () => {
+    // Reset for another 5 minute session
+    const newDuration = 5 * 60;
+    const newEndTime = Date.now() + newDuration * 1000;
+    endTimeRef.current = newEndTime;
+    setTimeLeft(newDuration);
+    setIsRunning(true);
+    setIsCompleted(false);
+    setCurrentTask({
+      task,
+      startedAt: new Date().toISOString(),
+      timeLeft: newDuration,
+      durationSec: newDuration,
+      endAt: new Date(newEndTime).toISOString(),
+    });
+  };
+
+  const handleFinish = () => {
+    setCurrentTask(null);
     navigate("/");
   };
 
@@ -144,32 +168,61 @@ const Timer = () => {
               <p className="text-base text-foreground">{task}</p>
             </div>
 
-            {/* Sound Toggle */}
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {soundEnabled ? (
-                <>
-                  <Volume2 className="w-5 h-5" />
-                  <span className="text-sm">Som ativado</span>
-                </>
-              ) : (
-                <>
-                  <VolumeX className="w-5 h-5" />
-                  <span className="text-sm">Som desativado</span>
-                </>
-              )}
-            </button>
+            {!isCompleted ? (
+              <>
+                {/* Sound Toggle */}
+                <button
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {soundEnabled ? (
+                    <>
+                      <Volume2 className="w-5 h-5" />
+                      <span className="text-sm">Som ativado</span>
+                    </>
+                  ) : (
+                    <>
+                      <VolumeX className="w-5 h-5" />
+                      <span className="text-sm">Som desativado</span>
+                    </>
+                  )}
+                </button>
 
-            {/* Stop Button */}
-            <Button
-              onClick={handleStopAndRestart}
-              variant="destructive"
-              className="w-full h-14 text-base font-semibold shadow-[0_2px_8px_-2px_hsl(var(--destructive)/0.3)]"
-            >
-              Parar e Reiniciar
-            </Button>
+                {/* Stop Button */}
+                <Button
+                  onClick={handleStopAndRestart}
+                  variant="destructive"
+                  className="w-full h-14 text-base font-semibold shadow-[0_2px_8px_-2px_hsl(var(--destructive)/0.3)]"
+                >
+                  Parar e Reiniciar
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* Completion Message */}
+                <div className="text-center py-2">
+                  <p className="text-lg font-semibold text-foreground mb-1">Foco concluído!</p>
+                  <p className="text-sm text-muted-foreground">Deseja continuar focando?</p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleFinish}
+                    variant="outline"
+                    className="flex-1 h-14 text-base font-semibold"
+                  >
+                    Finalizar
+                  </Button>
+                  <Button
+                    onClick={handleContinue}
+                    className="flex-1 h-14 text-base font-semibold bg-secondary hover:bg-secondary/90"
+                  >
+                    Continuar (5min)
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
