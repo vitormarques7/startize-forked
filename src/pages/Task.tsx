@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft } from "lucide-react";
-import { useCurrentTask } from "@/hooks/use-local-storage";
+import { useCurrentTask, useSettings } from "@/hooks/use-local-storage";
 
 const Task = () => {
   const navigate = useNavigate();
+  const [settings] = useSettings();
   const [currentTask, setCurrentTask] = useCurrentTask();
   const [task, setTask] = useState("");
 
-  // Load last incomplete task if exists
   useEffect(() => {
     if (currentTask && !task) {
       setTask(currentTask.task);
@@ -19,8 +19,7 @@ const Task = () => {
 
   const handleStart = () => {
     if (task.trim()) {
-      // Save current task to localStorage - fixed 5 minutes duration
-      const durationSec = 5 * 60;
+      const durationSec = settings.workTime * 60;
       const endAt = new Date(Date.now() + durationSec * 1000).toISOString();
       setCurrentTask({
         task: task.trim(),
@@ -79,7 +78,7 @@ const Task = () => {
                 disabled={!task.trim()}
                 className="flex-1 h-12 bg-secondary hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Começar (5min)
+                Começar ({settings.workTime}min)
               </Button>
             </div>
           </div>
