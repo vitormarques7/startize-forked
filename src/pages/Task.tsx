@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft } from "lucide-react";
-import { useCurrentTask } from "@/hooks/use-local-storage";
+import { useCurrentTask, useSettings } from "@/hooks/use-local-storage";
 
 const Task = () => {
   const navigate = useNavigate();
   const [currentTask, setCurrentTask] = useCurrentTask();
+  const [settings] = useSettings();
   const [task, setTask] = useState("");
 
   // Load last incomplete task if exists
@@ -20,10 +21,14 @@ const Task = () => {
   const handleStart = () => {
     if (task.trim()) {
       // Save current task to localStorage
+      const durationSec = Math.round(settings.workTime * 60);
+      const endAt = new Date(Date.now() + durationSec * 1000).toISOString();
       setCurrentTask({
         task: task.trim(),
         startedAt: new Date().toISOString(),
-        timeLeft: 5 * 60,
+        timeLeft: durationSec,
+        durationSec,
+        endAt,
       });
       navigate("/timer", { state: { task: task.trim() } });
     }

@@ -13,25 +13,37 @@ const Timer = () => {
   const [settings] = useSettings();
   const [currentTask, setCurrentTask] = useCurrentTask();
   
-  const [timeLeft, setTimeLeft] = useState(() => {
-    // Try to restore time from currentTask if returning to timer
-    if (currentTask && currentTask.task === task) {
-      return currentTask.timeLeft;
-    }
-    return settings.workTime * 60;
-  });
+  // Determine duration and end time to keep timer accurate across reloads
+  const duration = currentTask?.durationSec ?? Math.round(settings.workTime * 60);
+  const endTimeRef = useRef<number>(
+    currentTask?.endAt ? new Date(currentTask.endAt).getTime() : Date.now() + duration * 1000
+  );
+  const [timeLeft, setTimeLeft] = useState(() =>
+    Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000))
+  );
   const [isRunning, setIsRunning] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
+  const persistedOnceRef = useRef(false);
 
-  // Save current progress to localStorage
+  // Persist progress (timeLeft + endAt) to localStorage
   useEffect(() => {
-    if (currentTask && task !== "Tarefa não definida") {
-      setCurrentTask({
-        ...currentTask,
-        timeLeft,
+    if (task !== "Tarefa não definida") {
+      setCurrentTask((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          timeLeft,
+          durationSec: duration,
+          endAt: new Date(endTimeRef.current).toISOString(),
+        } as typeof prev;
+        const unchanged =
+          prev.timeLeft === next.timeLeft &&
+          prev.durationSec === next.durationSec &&
+          prev.endAt === next.endAt;
+        return unchanged ? prev : next;
       });
     }
-  }, [timeLeft, task, currentTask, setCurrentTask]);
+  }, [timeLeft, task, setCurrentTask, duration]);
 
   useEffect(() => {
     if (!location.state?.task) {
@@ -43,36 +55,34 @@ const Timer = () => {
   useEffect(() => {
     if (!isRunning) return;
 
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setIsRunning(false);
-          if (soundEnabled) {
-            // Play notification sound when timer ends
-            const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTWJ0fPTgjMGHm7A7+OZURE=");
-            audio.play().catch(() => {});
-          }
-          // Add to history when completed
-          const duration = Math.round(settings.workTime);
-          addHistoryEntry(task, duration, false);
-          setCurrentTask(null); // Clear current task
-          toast.success("Pomodoro concluído! 🎉");
-          return 0;
+    const id = setInterval(() => {
+      const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(id);
+        setIsRunning(false);
+        if (soundEnabled) {
+          // Play notification sound when timer ends
+          const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTWJ0fPTgjMGHm7A7+OZURE=");
+          audio.play().catch(() => {});
         }
-        return prev - 1;
-      });
+        // Add to history when completed
+        const durationMin = Math.round(duration / 60);
+        addHistoryEntry(task, durationMin, false);
+        setCurrentTask(null); // Clear current task
+        toast.success("Pomodoro concluído! 🎉");
+      }
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [isRunning, soundEnabled, task, settings.workTime, setCurrentTask]);
+    return () => clearInterval(id);
+  }, [isRunning, soundEnabled, task, duration, setCurrentTask]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
   const handleStopAndRestart = () => {
     // Add to history as interrupted
-    const timeSpent = Math.round((settings.workTime * 60 - timeLeft) / 60);
+    const timeSpent = Math.round((duration - timeLeft) / 60);
     if (timeSpent > 0) {
       addHistoryEntry(task, timeSpent, true);
     }
@@ -123,7 +133,7 @@ const Timer = () => {
               <div className="absolute -bottom-2 left-0 right-0 h-1 bg-muted rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-primary transition-all duration-1000 ease-linear"
-                  style={{ width: `${((settings.workTime * 60 - timeLeft) / (settings.workTime * 60)) * 100}%` }}
+                  style={{ width: `${((duration - timeLeft) / duration) * 100}%` }}
                 />
               </div>
             </div>

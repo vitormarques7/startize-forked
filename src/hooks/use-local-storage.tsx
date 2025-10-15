@@ -24,6 +24,8 @@ export interface CurrentTask {
   task: string;
   startedAt: string;
   timeLeft: number;
+  durationSec?: number;
+  endAt?: string;
 }
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
