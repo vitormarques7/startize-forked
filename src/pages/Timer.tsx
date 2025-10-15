@@ -41,11 +41,12 @@ const Timer = () => {
   }, [location.state, navigate]);
 
   useEffect(() => {
-    if (!isRunning || timeLeft <= 0) return;
+    if (!isRunning) return;
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
+          clearInterval(interval);
           setIsRunning(false);
           if (soundEnabled) {
             // Play notification sound when timer ends
@@ -64,7 +65,7 @@ const Timer = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft, soundEnabled, task, settings.workTime, setCurrentTask]);
+  }, [isRunning, soundEnabled, task, settings.workTime, setCurrentTask]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;

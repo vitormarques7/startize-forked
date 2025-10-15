@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
+import { Settings, AlarmClock } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ const Index = () => {
           {/* Logo/Icon Area */}
           <div className="mb-8">
             <div className="w-20 h-20 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-              <div className="w-12 h-12 bg-primary rounded-xl" />
+              <AlarmClock className="w-12 h-12 text-primary" aria-hidden="true" />
             </div>
           </div>
 
