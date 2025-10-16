@@ -44,30 +44,32 @@ const Timer = () => {
   const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
-    if (iframeRef.current) {
-      const iframe = iframeRef.current;
-      const player = iframe.contentWindow;
-      if (player) {
-        if (soundEnabled && settings.backgroundSound === 'youtube' && settings.youtubeUrl) {
-           player.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-        } else {
-           player.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-        }
-      }
-    }
+    // Lógica para áudio local (Ruído Branco, Chuva, etc.)
     if (audioRef.current) {
-      if (soundEnabled && settings.backgroundSound !== 'none' && settings.backgroundSound !== 'youtube') {
+      if (isRunning && soundEnabled && settings.backgroundSound !== 'none' && settings.backgroundSound !== 'youtube') {
         const soundPath = `/audio/${settings.backgroundSound}-60min.mp3`;
-        if (!audioRef.current.src.endsWith(soundPath)) {
+        if (!audioRef.current.src.endsWith(soundPath)) { // Evita recarregar se a URL for a mesma
           audioRef.current.src = soundPath;
         }
         audioRef.current.loop = true;
+        audioRef.current.volume = 0.5; // Ajuste o volume se necessário
         audioRef.current.play().catch(() => {});
       } else {
         audioRef.current.pause();
       }
     }
+
+    // Lógica para YouTube (apenas pausa/play via postMessage, o src já está setado)
+    const player = iframeRef.current?.contentWindow;
+    if (player && settings.backgroundSound === 'youtube') {
+      if (isRunning && soundEnabled && settings.youtubeUrl) {
+        player.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      } else {
+        player.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+      }
+    }
   }, [soundEnabled, settings.backgroundSound, settings.youtubeUrl, isRunning]);
+
 
   useEffect(() => {
     if (task !== "Tarefa não definida") {
@@ -205,9 +207,10 @@ const Timer = () => {
 
   const getYouTubeEmbedUrl = (url: string) => {
     if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch?v=|&v=)([^#&?]*).*/;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     if (match && match[2].length === 11) {
+      // Adicionamos ?enablejsapi=1 para permitir controle via JavaScript, mas o autoplay é o principal.
       return `https://www.youtube.com/embed/${match[2]}?autoplay=1&loop=1&playlist=${match[2]}&enablejsapi=1`;
     }
     return null;
@@ -219,9 +222,19 @@ const Timer = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--gradient-soft)" }}>
-      {youtubeUrl && settings.backgroundSound === 'youtube' && (
+      {/* YouTube Player (sempre presente, visibilidade controlada por CSS) */}
+      {youtubeUrl && (
         <div className="fixed top-0 left-0 w-0 h-0 overflow-hidden opacity-0 pointer-events-none">
-          <iframe ref={iframeRef} width="0" height="0" src={youtubeUrl} allow="autoplay; encrypted-media" allowFullScreen title="Background Music"/>
+          <iframe
+            ref={iframeRef}
+            width="0"
+            height="0"
+            // A URL é sempre definida aqui. O autoplay é tratado por 'allow' e 'postMessage'.
+            src={youtubeUrl} 
+            allow="autoplay; encrypted-media" 
+            allowFullScreen
+            title="Background Music"
+          />
         </div>
       )}
       <audio ref={audioRef} />

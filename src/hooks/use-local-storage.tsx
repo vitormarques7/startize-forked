@@ -10,6 +10,7 @@ export interface PomodoroSettings {
   autoStart: boolean;
   soundEnabled: boolean;
   askOnContinue: boolean;
+  alwaysAskForTask: boolean; 
   backgroundSound: 'none' | 'youtube' | 'White-Noise' | 'Rain' | 'Ocean' | 'Water';
   youtubeUrl: string;
 }
@@ -37,14 +38,15 @@ export interface UserStats {
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
   visualFilter: false,
-  workTime: 25,
+  workTime: 5,
   shortBreak: 5,
   longBreak: 15,
   longBreakInterval: 4,
-  autoBreaks: false, // Alterado para false
-  autoStart: false,  // Alterado para false
+  autoBreaks: false,
+  autoStart: false,
   soundEnabled: true,
   askOnContinue: true,
+  alwaysAskForTask: true, 
   backgroundSound: 'none',
   youtubeUrl: "",
 };
@@ -54,16 +56,12 @@ const DEFAULT_STATS: UserStats = {
   level: 1,
 };
 
-// ... o resto do arquivo continua exatamente igual ...
-// Nenhuma outra alteração é necessária
-
 export function useLocalStorage<T>(key: string, initialValue: T) {
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(`Error loading ${key} from localStorage:`, error);
       return initialValue;
     }
   });
@@ -74,7 +72,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       setStoredValue(valueToStore);
       window.localStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
-      console.error(`Error saving ${key} to localStorage:`, error);
+      //
     }
   };
 
@@ -117,7 +115,6 @@ export function addUserXp(amount: number): { leveledUp: boolean; newLevel: numbe
     localStorage.setItem('userStats', JSON.stringify(stats));
     return { leveledUp, newLevel: stats.level };
   } catch (error) {
-    console.error('Error adding user XP:', error);
     return { leveledUp: false, newLevel: 1 };
   }
 }
@@ -140,7 +137,7 @@ export function addHistoryEntry(
     const updatedHistory = history.slice(0, 100);
     localStorage.setItem('pomodoroHistory', JSON.stringify(updatedHistory));
   } catch (error) {
-    console.error('Error adding history entry:', error);
+    //
   }
 }
 
@@ -148,7 +145,7 @@ export function clearHistory() {
   try {
     localStorage.setItem('pomodoroHistory', JSON.stringify([]));
   } catch (error) {
-    console.error('Error clearing history:', error);
+    //
   }
 }
 
@@ -174,7 +171,6 @@ export function getStats() {
       todayPomodoros,
     };
   } catch (error) {
-    console.error('Error getting stats:', error);
     return {
       totalPomodoros: 0,
       totalInterrupted: 0,
