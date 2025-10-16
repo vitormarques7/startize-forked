@@ -9,14 +9,31 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ArrowLeft, Timer, Bot, Music, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/hooks/use-local-storage";
+import { usePresets } from "@/hooks/usePresets";
+import { useState } from "react";
 
 const Settings = () => {
   const navigate = useNavigate();
   const [settings, setSettings] = useSettings();
+  const { presets, addPreset, loadPreset, deletePreset } = usePresets();
+  const [presetName, setPresetName] = useState("");
+
 
   const handleSave = () => {
     toast.success("Configurações salvas com sucesso!");
     navigate("/");
+  };
+
+  const handleSavePreset = () => {
+    const ok = addPreset(presetName.trim(), settings);
+    if (!ok) toast.error("Limite de 3 predefinições atingido");
+    else toast.success("Predefinição salva!");
+    setPresetName("");
+  };
+
+  const handleLoadPreset = (presetSettings: any) => {
+    setSettings(presetSettings);
+    toast.success("Predefinição carregada!");
   };
 
   return (
@@ -186,6 +203,29 @@ const Settings = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        <div className="border-t border-border pt-4 mt-6 space-y-3">
+          <h3 className="text-sm font-medium">Predefinições</h3>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Nome da predefinição"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+            />
+            <Button onClick={handleSavePreset}>Salvar</Button>
+          </div>
+          <div className="space-y-2">
+            {presets.map((p) => (
+              <div key={p.name} className="flex items-center justify-between">
+                <span className="text-sm">{p.name}</span>
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => handleLoadPreset(p.settings)}>Carregar</Button>
+                  <Button variant="destructive" size="sm" onClick={() => deletePreset(p.name)}>Excluir</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
         
         <div className="flex justify-end gap-4 mt-4 pt-4 border-t border-border">
           <Button variant="ghost" onClick={() => navigate("/")}>Cancelar</Button>
