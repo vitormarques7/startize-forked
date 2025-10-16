@@ -124,6 +124,13 @@ const Settings = () => {
               </p>
               <div className="flex items-center justify-between">
                 <div>
+                  <Label htmlFor="always-ask-task">Sempre pedir microtarefa</Label>
+                  <p className="text-xs text-muted-foreground">Iniciar sempre pela tela de definição de tarefa.</p>
+                </div>
+                <Switch id="always-ask-task" checked={settings.alwaysAskForTask} onCheckedChange={(checked) => setSettings({ ...settings, alwaysAskForTask: checked })}/>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
                   <Label htmlFor="auto-breaks">Pausas automáticas</Label>
                   <p className="text-xs text-muted-foreground">Iniciar pausas automaticamente após o foco.</p>
                 </div>
