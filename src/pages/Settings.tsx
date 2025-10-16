@@ -6,7 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Timer, Bot, Music, Info } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, Timer, Bot, Music, Info, Plus, Trash2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/hooks/use-local-storage";
 import { usePresets } from "@/hooks/usePresets";
@@ -17,23 +18,51 @@ const Settings = () => {
   const [settings, setSettings] = useSettings();
   const { presets, addPreset, loadPreset, deletePreset } = usePresets();
   const [presetName, setPresetName] = useState("");
-
+  const [activePresetName, setActivePresetName] = useState<string | null>(null);
+  const [isPresetsExpanded, setIsPresetsExpanded] = useState(true);
+  const [initialSettings] = useState(settings);
 
   const handleSave = () => {
     toast.success("Configurações salvas com sucesso!");
     navigate("/");
   };
 
-  const handleSavePreset = () => {
+  const handleAddPreset = () => {
+    if (!presetName.trim()) {
+      toast.error("O nome da predefinição não pode ser vazio.");
+      return;
+    }
     const ok = addPreset(presetName.trim(), settings);
     if (!ok) toast.error("Limite de 3 predefinições atingido");
-    else toast.success("Predefinição salva!");
+    else {
+      toast.success("Predefinição salva!");
+      setActivePresetName(presetName.trim());
+    }
     setPresetName("");
   };
 
-  const handleLoadPreset = (presetSettings: any) => {
-    setSettings(presetSettings);
-    toast.success("Predefinição carregada!");
+  const handleLoadPreset = (name: string) => {
+    if (activePresetName === name) {
+      setSettings(initialSettings);
+      setActivePresetName(null);
+      toast.info("Seleção de predefinição removida.");
+      return;
+    }
+
+    const presetSettings = loadPreset(name);
+    if (presetSettings) {
+      setSettings(presetSettings);
+      setActivePresetName(name);
+      toast.success("Predefinição carregada!");
+    }
+  };
+
+  const handleDeletePreset = (name: string) => {
+    deletePreset(name);
+    if (activePresetName === name) {
+      setActivePresetName(null);
+    }
+    toast.success("Predefinição excluída!");
   };
 
   return (
@@ -204,28 +233,43 @@ const Settings = () => {
           </TabsContent>
         </Tabs>
 
-        <div className="border-t border-border pt-4 mt-6 space-y-3">
-          <h3 className="text-sm font-medium">Predefinições</h3>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Nome da predefinição"
-              value={presetName}
-              onChange={(e) => setPresetName(e.target.value)}
-            />
-            <Button onClick={handleSavePreset}>Salvar</Button>
-          </div>
-          <div className="space-y-2">
-            {presets.map((p) => (
-              <div key={p.name} className="flex items-center justify-between">
-                <span className="text-sm">{p.name}</span>
-                <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => handleLoadPreset(p.settings)}>Carregar</Button>
-                  <Button variant="destructive" size="sm" onClick={() => deletePreset(p.name)}>Excluir</Button>
+        <Collapsible open={isPresetsExpanded} onOpenChange={setIsPresetsExpanded} className="border-t border-border pt-4 mt-6 space-y-3">
+          <CollapsibleTrigger className="flex items-center justify-between w-full">
+            <h3 className="text-sm font-medium">Predefinições</h3>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isPresetsExpanded ? 'rotate-180' : ''}`}/>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 pt-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nome da predefinição"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddPreset(); }}
+              />
+              <Button onClick={handleAddPreset} className="p-2 h-auto w-auto">
+                <Plus className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {presets.map((p) => (
+                <div
+                  key={p.name}
+                  className={`flex items-center justify-between p-3 rounded-md transition-all duration-200 cursor-pointer group
+                    ${activePresetName === p.name ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground'}
+                  `}
+                  onClick={() => handleLoadPreset(p.name)}
+                >
+                  <span className={`text-sm ${activePresetName === p.name ? 'font-semibold' : ''}`}>{p.name}</span>
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleDeletePreset(p.name); }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
         
         <div className="flex justify-end gap-4 mt-4 pt-4 border-t border-border">
           <Button variant="ghost" onClick={() => navigate("/")}>Cancelar</Button>
