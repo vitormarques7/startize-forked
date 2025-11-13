@@ -8,8 +8,11 @@ export interface PomodoroSettings {
   longBreakInterval: number;
   autoBreaks: boolean;
   autoStart: boolean;
-  audioUrl: string;
   soundEnabled: boolean;
+  askOnContinue: boolean;
+  alwaysAskForTask: boolean; 
+  backgroundSound: 'none' | 'youtube' | 'White-Noise' | 'Rain' | 'Ocean' | 'Water';
+  youtubeUrl: string;
 }
 
 export interface PomodoroHistory {
@@ -28,16 +31,29 @@ export interface CurrentTask {
   endAt?: string;
 }
 
+export interface UserStats {
+  xp: number;
+  level: number;
+}
+
 const DEFAULT_SETTINGS: PomodoroSettings = {
   visualFilter: false,
-  workTime: 25,
+  workTime: 5,
   shortBreak: 5,
   longBreak: 15,
   longBreakInterval: 4,
   autoBreaks: false,
   autoStart: false,
-  audioUrl: "",
   soundEnabled: true,
+  askOnContinue: true,
+  alwaysAskForTask: true, 
+  backgroundSound: 'none',
+  youtubeUrl: "",
+};
+
+const DEFAULT_STATS: UserStats = {
+  xp: 0,
+  level: 1,
 };
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
@@ -46,7 +62,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(`Error loading ${key} from localStorage:`, error);
       return initialValue;
     }
   });
@@ -57,7 +72,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       setStoredValue(valueToStore);
       window.localStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
-      console.error(`Error saving ${key} to localStorage:`, error);
+      //
     }
   };
 
@@ -76,6 +91,34 @@ export function useCurrentTask() {
   return useLocalStorage<CurrentTask | null>('currentTask', null);
 }
 
+export function useUserStats() {
+  return useLocalStorage<UserStats>('userStats', DEFAULT_STATS);
+}
+
+export function addUserXp(amount: number): { leveledUp: boolean; newLevel: number } {
+  try {
+    const statsStr = localStorage.getItem('userStats');
+    const stats: UserStats = statsStr ? JSON.parse(statsStr) : DEFAULT_STATS;
+    
+    stats.xp += amount;
+
+    let leveledUp = false;
+    let xpForNextLevel = (stats.level) * 100;
+
+    while (stats.xp >= xpForNextLevel) {
+      stats.level += 1;
+      stats.xp -= xpForNextLevel;
+      leveledUp = true;
+      xpForNextLevel = (stats.level) * 100;
+    }
+
+    localStorage.setItem('userStats', JSON.stringify(stats));
+    return { leveledUp, newLevel: stats.level };
+  } catch (error) {
+    return { leveledUp: false, newLevel: 1 };
+  }
+}
+
 export function addHistoryEntry(
   task: string,
   duration: number,
@@ -91,11 +134,10 @@ export function addHistoryEntry(
       interrupted,
     };
     history.unshift(newEntry);
-    // Keep only last 100 entries
     const updatedHistory = history.slice(0, 100);
     localStorage.setItem('pomodoroHistory', JSON.stringify(updatedHistory));
   } catch (error) {
-    console.error('Error adding history entry:', error);
+    //
   }
 }
 
@@ -103,7 +145,7 @@ export function clearHistory() {
   try {
     localStorage.setItem('pomodoroHistory', JSON.stringify([]));
   } catch (error) {
-    console.error('Error clearing history:', error);
+    //
   }
 }
 
@@ -117,7 +159,6 @@ export function getStats() {
     const totalInterrupted = history.filter(h => h.interrupted).length;
     const totalMinutes = history.reduce((sum, h) => sum + h.duration, 0);
     
-    // Get today's stats
     const today = new Date().toDateString();
     const todayPomodoros = history.filter(
       h => !h.interrupted && new Date(h.completedAt).toDateString() === today
@@ -130,7 +171,6 @@ export function getStats() {
       todayPomodoros,
     };
   } catch (error) {
-    console.error('Error getting stats:', error);
     return {
       totalPomodoros: 0,
       totalInterrupted: 0,
