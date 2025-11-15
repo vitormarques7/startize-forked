@@ -1,24 +1,30 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Settings, AlarmClock } from "lucide-react";
-import { useSettings, useCurrentTask } from "@/hooks/use-local-storage";
+import { Settings, AlarmClock, Trophy } from "lucide-react";
+import { useSettings, useCurrentTask, useUserStats } from "@/hooks/use-local-storage";
 
 const Index = () => {
   const navigate = useNavigate();
   const [settings] = useSettings();
   const [, setCurrentTask] = useCurrentTask();
+  const [userStats] = useUserStats();
 
   const handleStart = () => {
     if (settings.alwaysAskForTask) {
       navigate("/task");
     } else {
-      const durationSec = settings.workTime * 60;
+      // Se preFocus está habilitado, começar com microtarefa de 5min
+      // Caso contrário, começar direto com o Pomodoro
+      const initialPhase = settings.preFocusEnabled ? 'preFocus' : 'focus';
+      const durationSec = settings.preFocusEnabled ? 5 * 60 : settings.workTime * 60;
       const defaultTask = {
         task: "Sessão de Foco",
         startedAt: new Date().toISOString(),
         timeLeft: durationSec,
         durationSec: durationSec,
         endAt: new Date(Date.now() + durationSec * 1000).toISOString(),
+        currentPhase: initialPhase as const,
+        pomodoroCount: 0,
       };
       setCurrentTask(defaultTask);
       navigate("/timer", { state: { task: defaultTask.task } });
@@ -49,9 +55,26 @@ const Index = () => {
             Startize Pomodoro
           </h1>
           
-          <p className="text-muted-foreground mb-12">
+          <p className="text-muted-foreground mb-8">
             Foco em microetapas gerenciáveis
           </p>
+
+          {/* Widget de XP/Level */}
+          <div className="bg-background rounded-xl p-4 border border-border mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Nível {userStats.level}</span>
+              </div>
+              <span className="text-xs text-muted-foreground">{userStats.xp} / {userStats.level * 100} XP</span>
+            </div>
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-500"
+                style={{ width: `${(userStats.xp / (userStats.level * 100)) * 100}%` }}
+              />
+            </div>
+          </div>
 
           <Button
             onClick={handleStart}
