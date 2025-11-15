@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 
+export type BackgroundSound = 'none' | 'youtube' | 'White-Noise' | 'Rain' | 'Ocean' | 'Water';
+
+export function isValidBackgroundSound(value: string): value is BackgroundSound {
+  return ['none', 'youtube', 'White-Noise', 'Rain', 'Ocean', 'Water'].includes(value);
+}
+
 export interface PomodoroSettings {
-  visualFilter: boolean;
   workTime: number;
   shortBreak: number;
   longBreak: number;
@@ -10,8 +15,10 @@ export interface PomodoroSettings {
   autoStart: boolean;
   soundEnabled: boolean;
   askOnContinue: boolean;
-  alwaysAskForTask: boolean; 
-  backgroundSound: 'none' | 'youtube' | 'White-Noise' | 'Rain' | 'Ocean' | 'Water';
+  alwaysAskForTask: boolean;
+  preFocusEnabled: boolean;
+  showTaskBeforeFocus: boolean;
+  backgroundSound: BackgroundSound;
   youtubeUrl: string;
 }
 
@@ -23,12 +30,16 @@ export interface PomodoroHistory {
   interrupted: boolean;
 }
 
+export type PomodoroPhase = 'preFocus' | 'miniBreak' | 'focus' | 'shortBreak' | 'longBreak';
+
 export interface CurrentTask {
   task: string;
   startedAt: string;
   timeLeft: number;
-  durationSec?: number;
-  endAt?: string;
+  durationSec: number;
+  endAt: string;
+  currentPhase: PomodoroPhase;
+  pomodoroCount: number;
 }
 
 export interface UserStats {
@@ -37,16 +48,17 @@ export interface UserStats {
 }
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
-  visualFilter: false,
-  workTime: 5,
+  workTime: 25,
   shortBreak: 5,
   longBreak: 15,
   longBreakInterval: 4,
   autoBreaks: false,
   autoStart: false,
   soundEnabled: true,
-  askOnContinue: true,
-  alwaysAskForTask: true, 
+  askOnContinue: false,
+  alwaysAskForTask: true,
+  preFocusEnabled: true,
+  showTaskBeforeFocus: true,
   backgroundSound: 'none',
   youtubeUrl: "",
 };
@@ -62,6 +74,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
+      console.error(`[localStorage] Erro ao ler chave "${key}":`, error);
       return initialValue;
     }
   });
@@ -72,7 +85,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       setStoredValue(valueToStore);
       window.localStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
-      //
+      console.error(`[localStorage] Erro ao salvar chave "${key}":`, error);
     }
   };
 
@@ -137,7 +150,7 @@ export function addHistoryEntry(
     const updatedHistory = history.slice(0, 100);
     localStorage.setItem('pomodoroHistory', JSON.stringify(updatedHistory));
   } catch (error) {
-    //
+    console.error('[localStorage] Erro ao adicionar entrada no histórico:', error);
   }
 }
 
@@ -145,7 +158,7 @@ export function clearHistory() {
   try {
     localStorage.setItem('pomodoroHistory', JSON.stringify([]));
   } catch (error) {
-    //
+    console.error('[localStorage] Erro ao limpar histórico:', error);
   }
 }
 
