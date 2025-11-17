@@ -32,6 +32,17 @@ if (fs.existsSync(audioSrc)) {
   console.log('✓ Pasta audio/ copiada');
 }
 
+// 3.5. Copiar arquivo do background
+const backgroundFiles = ['background.js'];
+backgroundFiles.forEach(file => {
+  const src = path.join(publicDir, file);
+  const dest = path.join(distDir, file);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, dest);
+    console.log(`✓ ${file} copiado`);
+  }
+});
+
 // 4. Corrigir caminhos absolutos no index.html para caminhos relativos
 const indexPath = path.join(distDir, 'index.html');
 let indexHtml = fs.readFileSync(indexPath, 'utf8');
