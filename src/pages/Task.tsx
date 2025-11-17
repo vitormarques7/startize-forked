@@ -3,25 +3,29 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft } from "lucide-react";
-import { useCurrentTask, useSettings } from "@/hooks/use-local-storage";
+import { useCurrentTask, useSettings, useTheme } from "@/hooks/use-local-storage";
 
 const Task = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [settings] = useSettings();
+  useTheme(); // Apply theme
   const [currentTask, setCurrentTask] = useCurrentTask();
   const [task, setTask] = useState("");
+  const [hasUserEdited, setHasUserEdited] = useState(false);
 
   // Contextos de onde vem
   const afterMiniBreak = location.state?.afterMiniBreak; // Acabou mini pausa (após pré-foco)
   const afterBreak = location.state?.afterBreak; // Acabou pausa curta/longa
+  const continueFocus = location.state?.continueFocus; // Continuando foco após pausa
   const receivedPomodoroCount = location.state?.pomodoroCount || 0;
 
   useEffect(() => {
-    if (currentTask && !task) {
+    // Só preenche automaticamente se o usuário não editou ainda
+    if (currentTask && !task && !hasUserEdited) {
       setTask(currentTask.task);
     }
-  }, [currentTask, task]);
+  }, [currentTask, task, hasUserEdited]);
 
   const handleStart = () => {
     if (task.trim()) {
@@ -29,8 +33,8 @@ const Task = () => {
       let durationSec: number;
 
       // Determinar fase e duração baseado no contexto
-      if (afterMiniBreak || afterBreak) {
-        // Se vem de mini pausa ou pausa curta/longa, sempre iniciar foco normal
+      if (afterMiniBreak || afterBreak || continueFocus) {
+        // Se vem de mini pausa, pausa curta/longa ou continua foco, sempre iniciar foco normal
         initialPhase = 'focus';
         durationSec = settings.workTime * 60;
       } else {
@@ -60,60 +64,69 @@ const Task = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && task.trim()) {
       handleStart();
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--gradient-soft)" }}>
-      <div className="w-full max-w-md">
-        <div className="bg-card rounded-2xl p-8 shadow-[var(--shadow-card)]">
+    <div className="h-full flex items-center justify-center p-3" style={{ background: "var(--gradient-soft)" }}>
+      <div className="w-full">
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-5 shadow-[0_10px_40px_rgb(0,0,0,0.15)] border border-border/60">
           <button
             onClick={() => navigate("/")}
-            className="mb-6 text-muted-foreground hover:text-foreground transition-colors"
+            className="mb-4 inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
             aria-label="Voltar para página inicial"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="text-xs font-medium">Voltar</span>
           </button>
 
-          <h1 className="text-2xl font-bold text-foreground mb-2">
-            {afterMiniBreak
-              ? 'Qual a tarefa para o Pomodoro principal?'
-              : afterBreak
-                ? 'Qual a tarefa para o próximo Pomodoro?'
-                : settings.preFocusEnabled
-                  ? 'Qual é a menor tarefa possível?'
-                  : 'Em que você vai trabalhar?'}
-          </h1>
+          <div className="text-center mb-5">
+            <h1 className="text-2xl font-black text-foreground mb-2 leading-tight">
+              {afterMiniBreak
+                ? 'Qual a tarefa para o Pomodoro principal?'
+                : afterBreak || continueFocus
+                  ? 'Qual a tarefa para o próximo Pomodoro?'
+                  : settings.preFocusEnabled
+                    ? 'Qual é a menor tarefa possível?'
+                    : 'Em que você vai trabalhar?'}
+            </h1>
 
-          <p className="text-muted-foreground mb-6">
-            {afterMiniBreak
-              ? `Defina sua tarefa para a sessão de ${settings.workTime} minutos`
-              : afterBreak
+            <p className="text-muted-foreground text-sm">
+              {afterMiniBreak
                 ? `Defina sua tarefa para a sessão de ${settings.workTime} minutos`
-                : settings.preFocusEnabled
-                  ? `Comece com uma microtarefa de 5 minutos para aquecer`
-                  : `Defina o que você vai fazer durante ${settings.workTime} minutos`
-            }
-          </p>
+                : afterBreak || continueFocus
+                  ? `Defina sua tarefa para a sessão de ${settings.workTime} minutos`
+                  : settings.preFocusEnabled
+                    ? `Comece com uma microtarefa de 5 minutos para aquecer`
+                    : `Defina o que você vai fazer durante ${settings.workTime} minutos`
+              }
+            </p>
+          </div>
 
           <div className="space-y-4">
-            <Input
-              value={task}
-              onChange={(e) => setTask(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={settings.preFocusEnabled ? "Ex: Abrir documento e ler introdução" : "Ex: Escrever relatório mensal"}
-              className="text-base h-12 bg-background border-border focus-visible:ring-primary"
-              autoFocus
-            />
+            <div className="relative group">
+              <Input
+                value={task}
+                onChange={(e) => {
+                  setTask(e.target.value);
+                  setHasUserEdited(true);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={settings.preFocusEnabled ? "Ex: Abrir documento e ler introdução" : "Ex: Escrever relatório mensal"}
+                className="text-sm h-11 bg-background/50 border-2 border-border/40 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/60 rounded-xl px-4 placeholder:text-muted-foreground/40 transition-all"
+                autoFocus
+              />
+              <div className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity"></div>
+            </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => navigate("/")}
-                className="flex-1 h-12"
+                className="h-10 px-5 text-xs font-semibold rounded-xl border-2"
               >
                 Cancelar
               </Button>
@@ -121,9 +134,9 @@ const Task = () => {
               <Button
                 onClick={handleStart}
                 disabled={!task.trim()}
-                className="flex-1 h-12 bg-secondary hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex-1 h-10 text-xs font-bold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all rounded-xl shadow-[0_4px_16px_-2px_rgba(var(--primary),0.3)] hover:shadow-[0_6px_20px_-2px_rgba(var(--primary),0.4)]"
               >
-                Começar ({afterMiniBreak || afterBreak ? settings.workTime : (settings.preFocusEnabled ? '5' : settings.workTime)}min)
+                Começar {afterMiniBreak || afterBreak || continueFocus ? settings.workTime : (settings.preFocusEnabled ? '5' : settings.workTime)}min →
               </Button>
             </div>
           </div>
