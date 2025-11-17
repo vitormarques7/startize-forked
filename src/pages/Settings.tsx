@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Timer, Bot, Music, Info, Plus, Trash2, ChevronDown, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import { useSettings, isValidBackgroundSound, PomodoroSettings } from "@/hooks/use-local-storage";
+import { useSettings, isValidBackgroundSound, PomodoroSettings, useTheme } from "@/hooks/use-local-storage";
 import { usePresets } from "@/hooks/usePresets";
 import { useState, useEffect, useRef } from "react";
 
@@ -38,11 +38,13 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
   showTaskBeforeFocus: true,
   backgroundSound: 'none',
   youtubeUrl: "",
+  theme: 'light',
 };
 
 const Settings = () => {
   const navigate = useNavigate();
   const [settings, setSettings] = useSettings();
+  useTheme(); // Initialize theme sync
   const { presets, addPreset, loadPreset, deletePreset } = usePresets();
   const [presetName, setPresetName] = useState("");
   const [activePresetName, setActivePresetName] = useState<string | null>(null);
@@ -447,60 +449,69 @@ const Settings = () => {
               <p className="text-sm text-muted-foreground">
                 Personalize o ambiente sonoro do seu foco.
               </p>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="sound-enabled">Sons de notificação</Label>
-                <Switch
-                  id="sound-enabled"
-                  checked={settings.soundEnabled}
-                  onCheckedChange={(checked) => setSettings({ ...settings, soundEnabled: checked })}
-                />
-              </div>
-              {settings.soundEnabled && (
-                <div className="space-y-4 pt-4 border-t border-border">
-                  <Label>Som de fundo</Label>
-                  <RadioGroup value={settings.backgroundSound} onValueChange={handleBackgroundSoundChange}>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="none" id="none" />
-                        <Label htmlFor="none" className="font-normal">Nenhum</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="White-Noise" id="White-Noise" />
-                        <Label htmlFor="White-Noise" className="font-normal">Ruído Branco</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Rain" id="Rain" />
-                        <Label htmlFor="Rain" className="font-normal">Chuva</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Ocean" id="Ocean" />
-                        <Label htmlFor="Ocean" className="font-normal">Oceano</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Water" id="Water" />
-                        <Label htmlFor="Water" className="font-normal">Água</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="youtube" id="youtube" />
-                        <Label htmlFor="youtube" className="font-normal">YouTube</Label>
-                      </div>
-                    </div>
-                  </RadioGroup>
-                  {settings.backgroundSound === 'youtube' && (
-                    <div className="pt-2">
-                      <Label htmlFor="youtube-url" className="text-xs text-muted-foreground">URL do YouTube</Label>
-                      <Input
-                        id="youtube-url"
-                        type="url"
-                        placeholder="https://youtube.com/watch?v=..."
-                        value={settings.youtubeUrl}
-                        onChange={(e) => setSettings({ ...settings, youtubeUrl: e.target.value })}
-                        className="mt-1"
-                      />
-                    </div>
-                  )}
+
+              {/* Sons de fundo - sempre visível */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Som de fundo durante foco</Label>
                 </div>
-              )}
+                <RadioGroup value={settings.backgroundSound} onValueChange={handleBackgroundSoundChange}>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="none" id="none" />
+                      <Label htmlFor="none" className="font-normal cursor-pointer">🔇 Nenhum</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="White-Noise" id="White-Noise" />
+                      <Label htmlFor="White-Noise" className="font-normal cursor-pointer">🌫️ Ruído Branco</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Rain" id="Rain" />
+                      <Label htmlFor="Rain" className="font-normal cursor-pointer">🌧️ Chuva</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Ocean" id="Ocean" />
+                      <Label htmlFor="Ocean" className="font-normal cursor-pointer">🌊 Oceano</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Water" id="Water" />
+                      <Label htmlFor="Water" className="font-normal cursor-pointer">💧 Água</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="youtube" id="youtube" />
+                      <Label htmlFor="youtube" className="font-normal cursor-pointer">▶️ YouTube</Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+                {settings.backgroundSound === 'youtube' && (
+                  <div className="pt-2 pl-1">
+                    <Label htmlFor="youtube-url" className="text-xs text-muted-foreground">URL do YouTube</Label>
+                    <Input
+                      id="youtube-url"
+                      type="url"
+                      placeholder="https://youtube.com/watch?v=..."
+                      value={settings.youtubeUrl}
+                      onChange={(e) => setSettings({ ...settings, youtubeUrl: e.target.value })}
+                      className="mt-1.5"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Sons de notificação - separado */}
+              <div className="pt-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="sound-enabled" className="text-sm font-semibold">Sons de notificação</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Toca ao completar foco/pausa</p>
+                  </div>
+                  <Switch
+                    id="sound-enabled"
+                    checked={settings.soundEnabled}
+                    onCheckedChange={(checked) => setSettings({ ...settings, soundEnabled: checked })}
+                  />
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

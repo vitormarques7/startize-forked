@@ -20,6 +20,7 @@ export interface PomodoroSettings {
   showTaskBeforeFocus: boolean;
   backgroundSound: BackgroundSound;
   youtubeUrl: string;
+  theme: 'light' | 'dark';
 }
 
 export interface PomodoroHistory {
@@ -61,6 +62,7 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
   showTaskBeforeFocus: true,
   backgroundSound: 'none',
   youtubeUrl: "",
+  theme: 'light',
 };
 
 const DEFAULT_STATS: UserStats = {
@@ -106,6 +108,45 @@ export function useCurrentTask() {
 
 export function useUserStats() {
   return useLocalStorage<UserStats>('userStats', DEFAULT_STATS);
+}
+
+export function useTheme() {
+  const [settings, setSettings] = useSettings();
+
+  // Aplicar tema imediatamente quando mudar
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [settings.theme]);
+
+  const toggleTheme = () => {
+    const newTheme: 'light' | 'dark' = settings.theme === 'light' ? 'dark' : 'light';
+    const newSettings: PomodoroSettings = { ...settings, theme: newTheme };
+
+    // Aplicar tema imediatamente no DOM antes de salvar
+    const root = document.documentElement;
+    if (newTheme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+
+    setSettings(newSettings);
+  };
+
+  return { theme: settings.theme, toggleTheme, setTheme: (theme: 'light' | 'dark') => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    setSettings({ ...settings, theme });
+  }};
 }
 
 export function addUserXp(amount: number): { leveledUp: boolean; newLevel: number } {
