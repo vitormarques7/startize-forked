@@ -71,7 +71,7 @@ const Task = () => {
   };
 
   return (
-    <div className="h-full flex items-center justify-center p-3" style={{ background: "var(--gradient-soft)" }}>
+    <div className="min-h-[400px] flex items-center justify-center p-3" style={{ background: "var(--gradient-soft)" }}>
       <div className="w-full">
         <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-5 shadow-[0_10px_40px_rgb(0,0,0,0.15)] border border-border/60">
           <button

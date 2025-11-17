@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Volume2, VolumeX, Pause, Play, CheckCircle, SkipForward } from "lucide-react";
 import { useSettings, useCurrentTask, addHistoryEntry, addUserXp, PomodoroPhase, BackgroundSound, isValidBackgroundSound, useTheme } from "@/hooks/use-local-storage";
 import { toast } from "sonner";
+import { startBackgroundTimer, isExtension, onBackgroundTimerChange, syncWithBackgroundTimer } from "@/utils/chrome-background";
 
 const Timer = () => {
   const navigate = useNavigate();
@@ -126,7 +127,7 @@ const Timer = () => {
 
     if (shouldSave || timeLeft === 0) {
       lastSaveTimeRef.current = now;
-      setCurrentTask({
+      const timerState = {
         task,
         startedAt: currentTask?.startedAt || new Date().toISOString(),
         timeLeft,
@@ -134,9 +135,16 @@ const Timer = () => {
         endAt: new Date(endTimeRef.current).toISOString(),
         currentPhase,
         pomodoroCount,
-      });
+      };
+
+      setCurrentTask(timerState);
+
+      // Sincronizar com background se for extensão
+      if (isRunning && isExtension()) {
+        startBackgroundTimer(timerState);
+      }
     }
-  }, [timeLeft, task, duration, currentPhase, pomodoroCount, currentTask?.startedAt, setCurrentTask]);
+  }, [timeLeft, task, duration, currentPhase, pomodoroCount, currentTask?.startedAt, setCurrentTask, isRunning]);
 
   // Redirecionar se não tiver tarefa válida
   useEffect(() => {
@@ -145,6 +153,36 @@ const Timer = () => {
       return;
     }
   }, [currentTask, taskFromState, navigate]);
+
+  // Sincronizar com background quando for extensão
+  useEffect(() => {
+    if (!isExtension()) return;
+
+    // Carregar estado inicial do background ao montar
+    syncWithBackgroundTimer().then((backgroundState) => {
+      if (backgroundState && backgroundState.isRunning) {
+        // Atualizar estado local com o estado do background
+        setTimeLeft(backgroundState.timeLeft || 0);
+        setCurrentPhase(backgroundState.currentPhase || 'focus');
+        setPomodoroCount(backgroundState.pomodoroCount || 0);
+        setIsRunning(backgroundState.isRunning);
+      }
+    });
+
+    // Escutar mudanças no background
+    const unsubscribe = onBackgroundTimerChange((backgroundState) => {
+      if (backgroundState && backgroundState.isRunning) {
+        setTimeLeft(backgroundState.timeLeft || 0);
+        setCurrentPhase(backgroundState.currentPhase || 'focus');
+        setPomodoroCount(backgroundState.pomodoroCount || 0);
+        setIsRunning(true);
+      } else {
+        setIsRunning(false);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   const handleStartPhase = (phase: PomodoroPhase) => {
     setCurrentPhase(phase);
@@ -478,7 +516,7 @@ const Timer = () => {
   };
 
   return (
-    <div className="h-full flex items-center justify-center p-3" style={{ background: "var(--gradient-soft)" }}>
+    <div className="min-h-[500px] flex items-center justify-center p-3" style={{ background: "var(--gradient-soft)" }}>
       {/* YouTube Player (sempre presente, visibilidade controlada por CSS) */}
       {youtubeUrl && (
         <div className="fixed top-0 left-0 w-0 h-0 overflow-hidden opacity-0 pointer-events-none">
@@ -500,36 +538,36 @@ const Timer = () => {
           <div className="text-center space-y-4">
             {/* Badge de Fase */}
             <div className="flex justify-center">
-              <span className={`inline-flex items-center px-5 py-2.5 rounded-full text-sm font-bold border-2 ${getPhaseColor()} transition-all duration-300`}>
+              <span className={`inline-flex items-center px-4 py-2 rounded-full text-xs font-bold border-2 ${getPhaseColor()} transition-all duration-300`}>
                 {getPhaseText()}
               </span>
             </div>
 
-            <div className="relative py-6">
+            <div className="relative py-4">
               <div className="relative">
-                <div className="text-7xl font-black text-foreground tracking-tight tabular-nums drop-shadow-sm">
+                <div className="text-5xl font-black text-foreground tracking-tight tabular-nums drop-shadow-sm">
                   {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
                 </div>
-                <div className="absolute inset-0 text-7xl font-black text-primary/5 tracking-tight tabular-nums blur-2xl">
+                <div className="absolute inset-0 text-5xl font-black text-primary/5 tracking-tight tabular-nums blur-2xl">
                   {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
                 </div>
               </div>
-              <div className="mt-4 h-1.5 bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 rounded-full overflow-hidden">
+              <div className="mt-3 h-1.5 bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-primary via-primary/90 to-primary transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(var(--primary),0.4)]" style={{ width: `${((getPhaseDuration(currentPhase) - timeLeft) / getPhaseDuration(currentPhase)) * 100}%` }}/>
               </div>
             </div>
 
             {!isBreakPhase ? (
-              <div className="bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-sm rounded-2xl p-5 border border-border/50 shadow-sm">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              <div className="bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-sm rounded-2xl p-3 border border-border/50 shadow-sm">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                   {currentPhase === 'preFocus' ? '⚡ Microtarefa de aquecimento' : '🎯 Pomodoro atual'}
                 </p>
-                <p className="text-lg font-semibold text-foreground leading-snug">{task}</p>
+                <p className="text-sm font-semibold text-foreground leading-snug">{task}</p>
                 {currentPhase === 'focus' && (
-                  <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-border/30">
+                  <div className="flex items-center justify-center gap-2 mt-2 pt-2 border-t border-border/30">
                     <div className="flex gap-1">
                       {Array.from({ length: pomodoroCount }).map((_, i) => (
-                        <div key={i} className="w-2 h-2 rounded-full bg-primary"></div>
+                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-primary"></div>
                       ))}
                     </div>
                     <p className="text-xs font-medium text-muted-foreground">
@@ -539,8 +577,8 @@ const Timer = () => {
                 )}
               </div>
             ) : (
-              <div className="bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-sm rounded-2xl p-6 border border-border/50 text-center shadow-sm">
-                <p className="text-lg font-semibold text-foreground leading-relaxed">
+              <div className="bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-sm rounded-2xl p-3 border border-border/50 text-center shadow-sm">
+                <p className="text-sm font-semibold text-foreground leading-relaxed">
                   {currentPhase === 'miniBreak' && '☕ Descanse um pouco! Logo volta ao foco.'}
                   {currentPhase === 'shortBreak' && '🌿 Relaxe e recarregue as energias.'}
                   {currentPhase === 'longBreak' && '🌟 Pausa longa! Você merece esse descanso.'}
@@ -551,13 +589,13 @@ const Timer = () => {
             {!isCompleted ? (
               <>
                 {/* Seletor de som de fundo */}
-                <div className="bg-gradient-to-br from-background/40 to-background/20 backdrop-blur-sm rounded-2xl p-5 border border-border/40">
-                  <div className="space-y-3">
+                <div className="bg-gradient-to-br from-background/40 to-background/20 backdrop-blur-sm rounded-2xl p-3 border border-border/40">
+                  <div className="space-y-2">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block">
                       🎵 Som de fundo
                     </label>
                     <Select value={settings.backgroundSound} onValueChange={handleSoundChange}>
-                      <SelectTrigger className="w-full h-11 border-border/50 bg-background/50 hover:bg-background/80 transition-colors" aria-label="Selecionar som de fundo">
+                      <SelectTrigger className="w-full h-9 border-border/50 bg-background/50 hover:bg-background/80 transition-colors text-xs" aria-label="Selecionar som de fundo">
                         <SelectValue placeholder="Escolha um som" />
                       </SelectTrigger>
                       <SelectContent>
@@ -574,112 +612,112 @@ const Timer = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-center gap-3 flex-wrap">
+                <div className="flex justify-center gap-2 flex-wrap">
                   {/* Botão de som - só mostra se houver som configurado */}
                   {settings.backgroundSound !== 'none' && (
                     <button
                       onClick={handleToggleSound}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-background/50 hover:bg-background/80 text-muted-foreground hover:text-foreground transition-all border border-border/30"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-background/50 hover:bg-background/80 text-muted-foreground hover:text-foreground transition-all border border-border/30"
                       aria-label={settings.soundEnabled ? "Desativar som" : "Ativar som"}
                     >
                       {settings.soundEnabled ? (
-                        <><Volume2 className="w-4 h-4" /><span className="text-sm font-medium">Som On</span></>
+                        <><Volume2 className="w-3.5 h-3.5" /><span className="text-xs font-medium">Som On</span></>
                       ) : (
-                        <><VolumeX className="w-4 h-4" /><span className="text-sm font-medium">Som Off</span></>
+                        <><VolumeX className="w-3.5 h-3.5" /><span className="text-xs font-medium">Som Off</span></>
                       )}
                     </button>
                   )}
                   {/* Botão de Pause/Resume */}
                   <button
                     onClick={handlePauseResume}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-background/50 hover:bg-background/80 text-muted-foreground hover:text-foreground transition-all border border-border/30"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-background/50 hover:bg-background/80 text-muted-foreground hover:text-foreground transition-all border border-border/30"
                     aria-label={isPaused ? "Retomar timer" : "Pausar timer"}
                   >
                     {isPaused ? (
-                      <><Play className="w-4 h-4" /><span className="text-sm font-medium">Retomar</span></>
+                      <><Play className="w-3.5 h-3.5" /><span className="text-xs font-medium">Retomar</span></>
                     ) : (
-                      <><Pause className="w-4 h-4" /><span className="text-sm font-medium">Pausar</span></>
+                      <><Pause className="w-3.5 h-3.5" /><span className="text-xs font-medium">Pausar</span></>
                     )}
                   </button>
                   {/* Botão de Pular Pausa - apenas durante pausas */}
                   {isBreakPhase && (
                     <button
                       onClick={handleSkipBreak}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary transition-all border border-primary/20"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary transition-all border border-primary/20"
                       aria-label="Pular pausa"
                     >
-                      <SkipForward className="w-4 h-4" />
-                      <span className="text-sm font-medium">Pular Pausa</span>
+                      <SkipForward className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium">Pular Pausa</span>
                     </button>
                   )}
                 </div>
                 {(currentPhase === 'focus' || currentPhase === 'preFocus') && (
                   <Button
                     onClick={handleCompleteTask}
-                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 shadow-[0_4px_16px_-2px_rgba(34,197,94,0.3)] hover:shadow-[0_6px_20px_-2px_rgba(34,197,94,0.4)] transition-all rounded-xl"
+                    className="w-full h-10 text-xs font-semibold bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 shadow-[0_4px_16px_-2px_rgba(34,197,94,0.3)] hover:shadow-[0_6px_20px_-2px_rgba(34,197,94,0.4)] transition-all rounded-xl"
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" />
+                    <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
                     Completar Tarefa
                   </Button>
                 )}
                 <button
                   onClick={handleStopAndRestart}
-                  className="w-full py-2 text-xs font-medium text-muted-foreground/70 hover:text-destructive/80 transition-colors"
+                  className="w-full py-1.5 text-xs font-medium text-muted-foreground/70 hover:text-destructive/80 transition-colors"
                 >
                   Parar e Reiniciar
                 </button>
               </>
             ) : (
               <>
-                <div className="text-center py-2">
-                  <p className="text-lg font-semibold text-foreground mb-1">
+                <div className="text-center py-1">
+                  <p className="text-sm font-semibold text-foreground mb-1">
                     {currentPhase === 'miniBreak'
                       ? 'Pré-foco concluído! 🎉'
                       : currentPhase === 'shortBreak' || currentPhase === 'longBreak'
                         ? 'Foco concluído!'
                         : 'Pausa concluída!'}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {currentPhase === 'miniBreak' && `Mini pausa de 2 minutos! Respire fundo.`}
                     {currentPhase === 'shortBreak' && `Hora da pausa curta (${settings.shortBreak}min).`}
                     {currentPhase === 'longBreak' && `Hora da pausa longa (${settings.longBreak}min).`}
                     {currentPhase === 'focus' && 'Vamos para a próxima tarefa?'}
                   </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {currentPhase === 'miniBreak' ? (
-                    <Button onClick={handleStartNextPhase} className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-md hover:shadow-lg animate-pulse rounded-xl transition-all">
+                    <Button onClick={handleStartNextPhase} className="w-full h-10 text-xs font-semibold bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-md hover:shadow-lg animate-pulse rounded-xl transition-all">
                       Iniciar Mini Pausa (2min) ☕
                     </Button>
                   ) : (currentPhase === 'shortBreak' || currentPhase === 'longBreak') ? (
                     <>
-                      <Button onClick={handleStartNextPhase} className="w-full h-11 text-sm font-semibold rounded-xl border-2" variant="outline">
+                      <Button onClick={handleStartNextPhase} className="w-full h-10 text-xs font-semibold rounded-xl border-2" variant="outline">
                         Iniciar Pausa ({currentPhase === 'shortBreak' ? settings.shortBreak : settings.longBreak}min)
                       </Button>
                       {settings.askOnContinue ? (
-                        <div className="flex gap-2.5">
-                          <Button onClick={() => handleStartPhase('focus')} variant="secondary" className="flex-1 h-11 text-sm font-semibold rounded-xl">
+                        <div className="flex gap-2">
+                          <Button onClick={() => handleStartPhase('focus')} variant="secondary" className="flex-1 h-10 text-xs font-semibold rounded-xl">
                             Continuar Foco
                           </Button>
-                          <Button onClick={handleContinueFocus} className="flex-1 h-11 text-sm font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 rounded-xl shadow-sm">
+                          <Button onClick={handleContinueFocus} className="flex-1 h-10 text-xs font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 rounded-xl shadow-sm">
                             Novo Foco
                           </Button>
                         </div>
                       ) : (
-                        <Button onClick={() => handleStartPhase('focus')} className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 rounded-xl">
+                        <Button onClick={() => handleStartPhase('focus')} className="w-full h-10 text-xs font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 rounded-xl">
                           Continuar Foco
                         </Button>
                       )}
                     </>
 
                   ) : (
-                    <Button onClick={handleStartNextPhase} className="w-full h-11 text-sm font-semibold bg-secondary hover:bg-secondary/90 rounded-xl">
+                    <Button onClick={handleStartNextPhase} className="w-full h-10 text-xs font-semibold bg-secondary hover:bg-secondary/90 rounded-xl">
                       Iniciar Foco
                     </Button>
                   )}
                   <button
                     onClick={handleStopAndRestart}
-                    className="w-full py-2 text-xs font-medium text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+                    className="w-full py-1.5 text-xs font-medium text-muted-foreground/70 hover:text-muted-foreground transition-colors"
                   >
                     Encerrar Sessão
                   </button>

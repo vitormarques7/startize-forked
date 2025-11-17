@@ -111,7 +111,13 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
     width: 400px;
-    height: 580px;
-    overflow: hidden;
+    min-height: min-content;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  /* Remove altura fixa do #root para permitir altura dinâmica */
+  #root {
+    min-height: min-content;
   }
 }
