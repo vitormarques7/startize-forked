@@ -32,9 +32,9 @@ if (fs.existsSync(audioSrc)) {
   console.log('✓ Pasta audio/ copiada');
 }
 
-// 3.5. Copiar arquivo do background
-const backgroundFiles = ['background.js'];
-backgroundFiles.forEach(file => {
+// 3.5. Copiar arquivos de background e content
+const extensionFiles = ['background.js', 'content.js'];
+extensionFiles.forEach(file => {
   const src = path.join(publicDir, file);
   const dest = path.join(distDir, file);
   if (fs.existsSync(src)) {

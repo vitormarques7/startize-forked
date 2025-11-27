@@ -641,14 +641,14 @@ const Timer = () => {
                   </button>
                   {/* Botão de Pular Pausa - apenas durante pausas */}
                   {isBreakPhase && (
-                    <button
+                    <Button
                       onClick={handleSkipBreak}
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary transition-all border border-primary/20"
                       aria-label="Pular pausa"
                     >
                       <SkipForward className="w-3.5 h-3.5" />
                       <span className="text-xs font-medium">Pular Pausa</span>
-                    </button>
+                    </Button>
                   )}
                 </div>
                 {(currentPhase === 'focus' || currentPhase === 'preFocus') && (

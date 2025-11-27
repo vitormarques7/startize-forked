@@ -7,7 +7,8 @@
       "Bash(node generate-icons.js:*)",
       "Bash(node generate-icons.cjs:*)",
       "Bash(npm run build:extension:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []
