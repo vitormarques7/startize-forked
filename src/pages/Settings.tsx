@@ -5,8 +5,16 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,9 +25,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Timer, Bot, Music, Info, Plus, Trash2, ChevronDown, RotateCcw } from "lucide-react";
+import {
+  ArrowLeft,
+  Timer,
+  Bot,
+  Music,
+  Info,
+  Plus,
+  Trash2,
+  ChevronDown,
+  RotateCcw,
+} from "lucide-react";
 import { toast } from "sonner";
-import { useSettings, isValidBackgroundSound, PomodoroSettings, useTheme } from "@/hooks/use-local-storage";
+import {
+  useSettings,
+  isValidBackgroundSound,
+  PomodoroSettings,
+  useTheme,
+} from "@/hooks/use-local-storage";
 import { usePresets } from "@/hooks/usePresets";
 import { useState, useEffect, useRef } from "react";
 
@@ -36,9 +59,9 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
   alwaysAskForTask: true,
   preFocusEnabled: true,
   showTaskBeforeFocus: true,
-  backgroundSound: 'none',
+  backgroundSound: "none",
   youtubeUrl: "",
-  theme: 'light',
+  theme: "light",
 };
 
 const Settings = () => {
@@ -56,18 +79,18 @@ const Settings = () => {
   // Sincronização entre tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'pomodoroSettings' && e.newValue) {
+      if (e.key === "pomodoroSettings" && e.newValue) {
         try {
           const newSettings = JSON.parse(e.newValue);
           setSettings(newSettings);
           toast.info("Configurações atualizadas em outra aba.");
         } catch (error) {
-          console.error('Erro ao sincronizar settings entre tabs:', error);
+          console.error("Erro ao sincronizar settings entre tabs:", error);
         }
       }
     };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, [setSettings]);
 
   const handleSave = () => {
@@ -82,15 +105,19 @@ const Settings = () => {
     }
 
     // Verificar se já existe
-    const existingPreset = presets.find(p => p.name === presetName.trim());
+    const existingPreset = presets.find((p) => p.name === presetName.trim());
     if (existingPreset) {
-      toast.error("Já existe uma predefinição com este nome. Escolha outro nome.");
+      toast.error(
+        "Já existe uma predefinição com este nome. Escolha outro nome."
+      );
       return;
     }
 
     const ok = addPreset(presetName.trim(), settings);
     if (!ok) {
-      toast.error("Limite de 3 predefinições atingido. Exclua uma para adicionar outra.");
+      toast.error(
+        "Limite de 3 predefinições atingido. Exclua uma para adicionar outra."
+      );
     } else {
       toast.success("Predefinição salva!");
       setActivePresetName(presetName.trim());
@@ -115,7 +142,7 @@ const Settings = () => {
   };
 
   const handleLoadDefaultSettings = () => {
-    if (activePresetName === '_default') {
+    if (activePresetName === "_default") {
       setSettings(initialSettings);
       setActivePresetName(null);
       toast.info("Seleção de predefinição removida.");
@@ -123,7 +150,7 @@ const Settings = () => {
     }
 
     setSettings(DEFAULT_SETTINGS);
-    setActivePresetName('_default');
+    setActivePresetName("_default");
     toast.success("Configurações padrão restauradas!");
   };
 
@@ -137,13 +164,13 @@ const Settings = () => {
   };
 
   const handleTimeInputChange = (
-    field: 'workTime' | 'shortBreak' | 'longBreak' | 'longBreakInterval',
+    field: "workTime" | "shortBreak" | "longBreak" | "longBreakInterval",
     value: string
   ) => {
     // Permitir edição livre, atualizar imediatamente
     const numValue = parseInt(value);
 
-    if (value === '' || isNaN(numValue)) {
+    if (value === "" || isNaN(numValue)) {
       // Se vazio ou inválido, permitir temporariamente para edição
       setSettings({ ...settings, [field]: value as any });
     } else {
@@ -152,7 +179,7 @@ const Settings = () => {
   };
 
   const handleTimeInputBlur = (
-    field: 'workTime' | 'shortBreak' | 'longBreak' | 'longBreakInterval'
+    field: "workTime" | "shortBreak" | "longBreak" | "longBreakInterval"
   ) => {
     const currentValue = settings[field];
 
@@ -161,25 +188,26 @@ const Settings = () => {
     let max = 60;
 
     switch (field) {
-      case 'workTime':
+      case "workTime":
         min = 1;
         max = 60;
         break;
-      case 'shortBreak':
+      case "shortBreak":
         min = 1;
         max = 30;
         break;
-      case 'longBreak':
+      case "longBreak":
         min = 1;
         max = 60;
         break;
-      case 'longBreakInterval':
+      case "longBreakInterval":
         min = 1;
         max = 10;
         break;
     }
 
-    const numValue = typeof currentValue === 'string' ? parseInt(currentValue) : currentValue;
+    const numValue =
+      typeof currentValue === "string" ? parseInt(currentValue) : currentValue;
 
     if (isNaN(numValue) || numValue < min || numValue > max) {
       // Restaurar valor padrão se inválido
@@ -199,7 +227,7 @@ const Settings = () => {
       setSettings({ ...settings, backgroundSound: value });
 
       // Tocar preview do som selecionado
-      if (value !== 'none' && value !== 'youtube') {
+      if (value !== "none" && value !== "youtube") {
         if (previewAudioRef.current) {
           previewAudioRef.current.pause();
         }
@@ -208,8 +236,8 @@ const Settings = () => {
         const audio = new Audio(soundPath);
         audio.volume = 0.3;
         audio.play().catch((error) => {
-          console.error('Erro ao reproduzir preview:', error);
-          toast.error('Não foi possível reproduzir o preview do áudio.');
+          console.error("Erro ao reproduzir preview:", error);
+          toast.error("Não foi possível reproduzir o preview do áudio.");
         });
 
         // Parar após 5 segundos
@@ -235,8 +263,18 @@ const Settings = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--gradient-soft)" }}>
-      <div className="w-full max-w-lg bg-card rounded-2xl p-6 shadow-[var(--shadow-card)]">
+    <div
+      // MUDANÇA AQUI: fixed inset-0 para centralizar corretamente na extensão
+      className="fixed inset-0 w-screen h-screen flex items-center justify-center p-3"
+      style={{
+        background: "var(--gradient-soft)",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+      }}
+    >
+      {/* Container interno com rolagem (overflow-y-auto) caso o conteúdo seja maior que a tela */}
+      <div className="w-full max-w-lg bg-card rounded-2xl p-6 shadow-[var(--shadow-card)] max-h-[90vh] overflow-y-auto">
         <header className="mb-6">
           <button
             onClick={() => navigate("/")}
@@ -246,9 +284,7 @@ const Settings = () => {
             <ArrowLeft className="w-5 h-5" />
             Voltar
           </button>
-          <h1 className="text-2xl font-bold text-foreground">
-            Configurações
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
         </header>
 
         <Tabs defaultValue="timers" className="w-full">
@@ -275,7 +311,9 @@ const Settings = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Label htmlFor="work-time" className="text-sm">Pomodoro</Label>
+                    <Label htmlFor="work-time" className="text-sm">
+                      Pomodoro
+                    </Label>
                     <Tooltip>
                       <TooltipTrigger>
                         <Info className="w-3.5 h-3.5 text-muted-foreground" />
@@ -291,13 +329,17 @@ const Settings = () => {
                     min="1"
                     max="60"
                     value={settings.workTime}
-                    onChange={(e) => handleTimeInputChange('workTime', e.target.value)}
-                    onBlur={() => handleTimeInputBlur('workTime')}
+                    onChange={(e) =>
+                      handleTimeInputChange("workTime", e.target.value)
+                    }
+                    onBlur={() => handleTimeInputBlur("workTime")}
                   />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Label htmlFor="short-break" className="text-sm">Pausa Curta</Label>
+                    <Label htmlFor="short-break" className="text-sm">
+                      Pausa Curta
+                    </Label>
                     <Tooltip>
                       <TooltipTrigger>
                         <Info className="w-3.5 h-3.5 text-muted-foreground" />
@@ -313,13 +355,17 @@ const Settings = () => {
                     min="1"
                     max="30"
                     value={settings.shortBreak}
-                    onChange={(e) => handleTimeInputChange('shortBreak', e.target.value)}
-                    onBlur={() => handleTimeInputBlur('shortBreak')}
+                    onChange={(e) =>
+                      handleTimeInputChange("shortBreak", e.target.value)
+                    }
+                    onBlur={() => handleTimeInputBlur("shortBreak")}
                   />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Label htmlFor="long-break" className="text-sm">Pausa Longa</Label>
+                    <Label htmlFor="long-break" className="text-sm">
+                      Pausa Longa
+                    </Label>
                     <Tooltip>
                       <TooltipTrigger>
                         <Info className="w-3.5 h-3.5 text-muted-foreground" />
@@ -335,13 +381,17 @@ const Settings = () => {
                     min="1"
                     max="60"
                     value={settings.longBreak}
-                    onChange={(e) => handleTimeInputChange('longBreak', e.target.value)}
-                    onBlur={() => handleTimeInputBlur('longBreak')}
+                    onChange={(e) =>
+                      handleTimeInputChange("longBreak", e.target.value)
+                    }
+                    onBlur={() => handleTimeInputBlur("longBreak")}
                   />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Label htmlFor="interval" className="text-sm">Intervalo</Label>
+                    <Label htmlFor="interval" className="text-sm">
+                      Intervalo
+                    </Label>
                     <Tooltip>
                       <TooltipTrigger>
                         <Info className="w-3.5 h-3.5 text-muted-foreground" />
@@ -357,8 +407,10 @@ const Settings = () => {
                     min="1"
                     max="10"
                     value={settings.longBreakInterval}
-                    onChange={(e) => handleTimeInputChange('longBreakInterval', e.target.value)}
-                    onBlur={() => handleTimeInputBlur('longBreakInterval')}
+                    onChange={(e) =>
+                      handleTimeInputChange("longBreakInterval", e.target.value)
+                    }
+                    onBlur={() => handleTimeInputBlur("longBreakInterval")}
                   />
                 </div>
               </div>
@@ -372,71 +424,110 @@ const Settings = () => {
               </p>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="always-ask-task">Sempre iniciar pela tela de tarefa</Label>
-                  <p className="text-xs text-muted-foreground">Ao abrir o app, pedir qual tarefa trabalhar.</p>
+                  <Label htmlFor="always-ask-task">
+                    Sempre iniciar pela tela de tarefa
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ao abrir o app, pedir qual tarefa trabalhar.
+                  </p>
                 </div>
                 <Switch
                   id="always-ask-task"
                   checked={settings.alwaysAskForTask}
-                  onCheckedChange={(checked) => setSettings({ ...settings, alwaysAskForTask: checked })}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, alwaysAskForTask: checked })
+                  }
                 />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="auto-breaks">Iniciar pausas automaticamente</Label>
-                  <p className="text-xs text-muted-foreground">Após completar um foco, a pausa inicia sozinha.</p>
+                  <Label htmlFor="auto-breaks">
+                    Iniciar pausas automaticamente
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Após completar um foco, a pausa inicia sozinha.
+                  </p>
                 </div>
                 <Switch
                   id="auto-breaks"
                   checked={settings.autoBreaks}
-                  onCheckedChange={(checked) => setSettings({ ...settings, autoBreaks: checked })}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, autoBreaks: checked })
+                  }
                 />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="auto-start">Iniciar foco automaticamente</Label>
-                  <p className="text-xs text-muted-foreground">Após completar uma pausa, o foco inicia sozinho.</p>
+                  <Label htmlFor="auto-start">
+                    Iniciar foco automaticamente
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Após completar uma pausa, o foco inicia sozinho.
+                  </p>
                 </div>
                 <Switch
                   id="auto-start"
                   checked={settings.autoStart}
-                  onCheckedChange={(checked) => setSettings({ ...settings, autoStart: checked })}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, autoStart: checked })
+                  }
                 />
               </div>
               <div className="border-t border-border pt-4 mt-4">
-                <p className="text-xs font-medium text-muted-foreground mb-3">Opções Avançadas</p>
+                <p className="text-xs font-medium text-muted-foreground mb-3">
+                  Opções Avançadas
+                </p>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label htmlFor="show-task-before-focus">Perguntar nova tarefa a cada ciclo</Label>
-                      <p className="text-xs text-muted-foreground">Mostra tela de tarefa antes de cada foco.</p>
+                      <Label htmlFor="show-task-before-focus">
+                        Perguntar nova tarefa a cada ciclo
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Mostra tela de tarefa antes de cada foco.
+                      </p>
                     </div>
                     <Switch
                       id="show-task-before-focus"
                       checked={settings.showTaskBeforeFocus}
-                      onCheckedChange={(checked) => setSettings({ ...settings, showTaskBeforeFocus: checked })}
+                      onCheckedChange={(checked) =>
+                        setSettings({
+                          ...settings,
+                          showTaskBeforeFocus: checked,
+                        })
+                      }
                     />
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label htmlFor="ask-on-continue">Permitir trocar de tarefa</Label>
-                      <p className="text-xs text-muted-foreground">Ao clicar em "Novo Foco", pergunta qual tarefa.</p>
+                      <Label htmlFor="ask-on-continue">
+                        Permitir trocar de tarefa
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Ao clicar em "Novo Foco", pergunta qual tarefa.
+                      </p>
                     </div>
                     <Switch
                       id="ask-on-continue"
                       checked={settings.askOnContinue}
-                      onCheckedChange={(checked) => setSettings({ ...settings, askOnContinue: checked })}
+                      onCheckedChange={(checked) =>
+                        setSettings({ ...settings, askOnContinue: checked })
+                      }
                     />
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="pre-focus">Pré-foco de 5 minutos</Label>
-                      <p className="text-xs text-muted-foreground">Iniciar com 5min de aquecimento antes do Pomodoro.</p>
+                      <p className="text-xs text-muted-foreground">
+                        Iniciar com 5min de aquecimento antes do Pomodoro.
+                      </p>
                     </div>
                     <Switch
                       id="pre-focus"
                       checked={settings.preFocusEnabled}
-                      onCheckedChange={(checked) => setSettings({ ...settings, preFocusEnabled: checked })}
+                      onCheckedChange={(checked) =>
+                        setSettings({ ...settings, preFocusEnabled: checked })
+                      }
                     />
                   </div>
                 </div>
@@ -453,45 +544,87 @@ const Settings = () => {
               {/* Sons de fundo - sempre visível */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold">Som de fundo durante foco</Label>
+                  <Label className="text-sm font-semibold">
+                    Som de fundo durante foco
+                  </Label>
                 </div>
-                <RadioGroup value={settings.backgroundSound} onValueChange={handleBackgroundSoundChange}>
+                <RadioGroup
+                  value={settings.backgroundSound}
+                  onValueChange={handleBackgroundSoundChange}
+                >
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="none" id="none" />
-                      <Label htmlFor="none" className="font-normal cursor-pointer">🔇 Nenhum</Label>
+                      <Label
+                        htmlFor="none"
+                        className="font-normal cursor-pointer"
+                      >
+                        🔇 Nenhum
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="White-Noise" id="White-Noise" />
-                      <Label htmlFor="White-Noise" className="font-normal cursor-pointer">🌫️ Ruído Branco</Label>
+                      <Label
+                        htmlFor="White-Noise"
+                        className="font-normal cursor-pointer"
+                      >
+                        🌫️ Ruído Branco
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Rain" id="Rain" />
-                      <Label htmlFor="Rain" className="font-normal cursor-pointer">🌧️ Chuva</Label>
+                      <Label
+                        htmlFor="Rain"
+                        className="font-normal cursor-pointer"
+                      >
+                        🌧️ Chuva
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Ocean" id="Ocean" />
-                      <Label htmlFor="Ocean" className="font-normal cursor-pointer">🌊 Oceano</Label>
+                      <Label
+                        htmlFor="Ocean"
+                        className="font-normal cursor-pointer"
+                      >
+                        🌊 Oceano
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Water" id="Water" />
-                      <Label htmlFor="Water" className="font-normal cursor-pointer">💧 Água</Label>
+                      <Label
+                        htmlFor="Water"
+                        className="font-normal cursor-pointer"
+                      >
+                        💧 Água
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="youtube" id="youtube" />
-                      <Label htmlFor="youtube" className="font-normal cursor-pointer">▶️ YouTube</Label>
+                      <Label
+                        htmlFor="youtube"
+                        className="font-normal cursor-pointer"
+                      >
+                        ▶️ YouTube
+                      </Label>
                     </div>
                   </div>
                 </RadioGroup>
-                {settings.backgroundSound === 'youtube' && (
+                {settings.backgroundSound === "youtube" && (
                   <div className="pt-2 pl-1">
-                    <Label htmlFor="youtube-url" className="text-xs text-muted-foreground">URL do YouTube</Label>
+                    <Label
+                      htmlFor="youtube-url"
+                      className="text-xs text-muted-foreground"
+                    >
+                      URL do YouTube
+                    </Label>
                     <Input
                       id="youtube-url"
                       type="url"
                       placeholder="https://youtube.com/watch?v=..."
                       value={settings.youtubeUrl}
-                      onChange={(e) => setSettings({ ...settings, youtubeUrl: e.target.value })}
+                      onChange={(e) =>
+                        setSettings({ ...settings, youtubeUrl: e.target.value })
+                      }
                       className="mt-1.5"
                     />
                   </div>
@@ -502,13 +635,22 @@ const Settings = () => {
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="sound-enabled" className="text-sm font-semibold">Sons de notificação</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">Toca ao completar foco/pausa</p>
+                    <Label
+                      htmlFor="sound-enabled"
+                      className="text-sm font-semibold"
+                    >
+                      Sons de notificação
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Toca ao completar foco/pausa
+                    </p>
                   </div>
                   <Switch
                     id="sound-enabled"
                     checked={settings.soundEnabled}
-                    onCheckedChange={(checked) => setSettings({ ...settings, soundEnabled: checked })}
+                    onCheckedChange={(checked) =>
+                      setSettings({ ...settings, soundEnabled: checked })
+                    }
                   />
                 </div>
               </div>
@@ -516,7 +658,11 @@ const Settings = () => {
           </TabsContent>
         </Tabs>
 
-        <Collapsible open={isPresetsExpanded} onOpenChange={setIsPresetsExpanded} className="border-t border-border pt-4 mt-6 space-y-3">
+        <Collapsible
+          open={isPresetsExpanded}
+          onOpenChange={setIsPresetsExpanded}
+          className="border-t border-border pt-4 mt-6 space-y-3"
+        >
           <CollapsibleTrigger className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-medium">Predefinições</h3>
@@ -525,11 +671,17 @@ const Settings = () => {
                   <Info className="w-3.5 h-3.5 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Salve até 3 configurações personalizadas para reutilizar.</p>
+                  <p>
+                    Salve até 3 configurações personalizadas para reutilizar.
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </div>
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isPresetsExpanded ? 'rotate-180' : ''}`}/>
+            <ChevronDown
+              className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
+                isPresetsExpanded ? "rotate-180" : ""
+              }`}
+            />
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 pt-2">
             <div className="flex gap-2">
@@ -537,7 +689,9 @@ const Settings = () => {
                 placeholder="Nome da predefinição"
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleAddPreset(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddPreset();
+                }}
                 disabled={presets.length >= 3}
               />
               <Button
@@ -551,23 +705,34 @@ const Settings = () => {
             </div>
             {presets.length >= 3 && (
               <p className="text-xs text-muted-foreground">
-                Limite de 3 predefinições atingido. Exclua uma para adicionar outra.
+                Limite de 3 predefinições atingido. Exclua uma para adicionar
+                outra.
               </p>
             )}
             <div className="space-y-2">
               {/* Predefinição Padrão (sempre visível) */}
               <div
                 className={`flex items-center justify-between p-3 rounded-md transition-all duration-200 cursor-pointer group
-                  ${activePresetName === '_default' ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground border-2 border-dashed border-muted-foreground/30'}
+                  ${
+                    activePresetName === "_default"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground border-2 border-dashed border-muted-foreground/30"
+                  }
                 `}
                 onClick={handleLoadDefaultSettings}
               >
                 <div className="flex items-center gap-2">
                   <RotateCcw className="w-4 h-4" />
-                  <span className={`text-sm ${activePresetName === '_default' ? 'font-semibold' : ''}`}>Padrão</span>
+                  <span
+                    className={`text-sm ${
+                      activePresetName === "_default" ? "font-semibold" : ""
+                    }`}
+                  >
+                    Padrão
+                  </span>
                 </div>
                 <span className="text-xs opacity-70">
-                  {activePresetName === '_default' ? 'Ativa' : 'Restaurar'}
+                  {activePresetName === "_default" ? "Ativa" : "Restaurar"}
                 </span>
               </div>
 
@@ -576,11 +741,21 @@ const Settings = () => {
                 <div
                   key={p.name}
                   className={`flex items-center justify-between p-3 rounded-md transition-all duration-200 cursor-pointer group
-                    ${activePresetName === p.name ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground'}
+                    ${
+                      activePresetName === p.name
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground"
+                    }
                   `}
                   onClick={() => handleLoadPreset(p.name)}
                 >
-                  <span className={`text-sm ${activePresetName === p.name ? 'font-semibold' : ''}`}>{p.name}</span>
+                  <span
+                    className={`text-sm ${
+                      activePresetName === p.name ? "font-semibold" : ""
+                    }`}
+                  >
+                    {p.name}
+                  </span>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
                       variant="ghost"
@@ -602,23 +777,35 @@ const Settings = () => {
         </Collapsible>
 
         <div className="flex justify-end gap-4 mt-4 pt-4 border-t border-border">
-          <Button variant="ghost" onClick={() => navigate("/")}>Cancelar</Button>
-          <Button onClick={handleSave} className="w-28">Concluído</Button>
+          <Button variant="ghost" onClick={() => navigate("/")}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} className="w-28">
+            Concluído
+          </Button>
         </div>
       </div>
 
       {/* Dialog de confirmação de exclusão */}
-      <AlertDialog open={!!presetToDelete} onOpenChange={(open) => !open && setPresetToDelete(null)}>
+      <AlertDialog
+        open={!!presetToDelete}
+        onOpenChange={(open) => !open && setPresetToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir predefinição?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a predefinição "{presetToDelete}"? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir a predefinição "{presetToDelete}"?
+              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => presetToDelete && handleDeletePreset(presetToDelete)}>
+            <AlertDialogAction
+              onClick={() =>
+                presetToDelete && handleDeletePreset(presetToDelete)
+              }
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
