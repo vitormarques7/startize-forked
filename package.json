@@ -10,7 +10,8 @@
     "build:extension": "vite build && node scripts/post-build-extension.cjs",
     "generate-icons": "node generate-icons.cjs",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "jest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
